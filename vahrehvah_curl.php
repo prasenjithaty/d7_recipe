@@ -1,6 +1,6 @@
 <?php
 include_once('curl.php');
-
+include_once('functions.inc');
 
 //implementation
 $cc = new cURL();
@@ -152,9 +152,5 @@ function getContent($url) {
   return $content;
 }
 
-function p($v = '') {
-  echo "<pre>";
-  print_r($v);
-  echo "</pre>";
-}
+
 ?>

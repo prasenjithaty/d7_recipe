@@ -1,11 +1,13 @@
 <?php
 include_once('curl.php');
-include_once('functions.inc');
+include_once('includes/functions.inc');
+include_once('includes/logging.inc');
+set_time_limit(3600);
 
 //implementation
 $cc = new cURL();
 $content = $cc->get('http://www.vahrehvah.com/');
-$node = new stdClass();
+$node_results = array();
 
 $recipe_types = "";
 if (preg_match('%<li><a href="indianrecipes.php" class="dir".*?</ul>.*?</li>%sim', $content, $regs)) {
@@ -19,8 +21,6 @@ preg_match_all('/href=".+?"/sim', $recipe_types, $recipe_cat_url, PREG_PATTERN_O
 $recipe_cat_url = $recipe_cat_url[0];
 $recipe_cat_url = preg_replace('/href="/sim', 'http://www.vahrehvah.com/', $recipe_cat_url);
 $recipe_cat_url = preg_replace('/"/sim', '', $recipe_cat_url);
-
-
 
 preg_match_all('%">.+?</a>%sim', $recipe_types, $recipe_cat_title, PREG_PATTERN_ORDER);
 $recipe_cat_title = $recipe_cat_title[0];
@@ -36,13 +36,18 @@ foreach ($recipe_cat_url as $key => $value) {
     }
 
     //preg_match_all('%<a href=".*?</a>%sim', $content, $single_recipe_title_url, PREG_PATTERN_ORDER);
-    $single_recipe_title_url = 'PREG_PATTERN_ORDER';
+    //$single_recipe_title_url = 'PREG_PATTERN_ORDER';
     $single_recipe_title_url = extractContent('%<a href=".*?</a>%sim', $content, $single_recipe_title_url);
     foreach ($single_recipe_title_url[0] as $key => $value) {
         preg_match_all('/\b(?:(?:http?):\/\/|www\.)[-A-Z0-9+&@#\/%=~_|$?!:,.]*[A-Z0-9+&@#\/%=~_|$]/sim', $value, $single_recipe_url, PREG_PATTERN_ORDER);
         $single_recipe_url = $single_recipe_url[0];
+        $count = 0;
         foreach ($single_recipe_url as $key => $value) {
+            if ($count == 5) {
+              break;
+            }
             //echo '<p>single_recipe_url: '. $value.'</p>';
+            $node = new stdClass();
             $node->single_recipe_url = $value;
             $content = getContent($value);
             preg_match_all('%<fieldset id="Category - Parent Category_fieldset" class="admin_fieldset" style="text-align:center;width:560px;" record_number="34">.*?</fieldset>%sim', $content, $recipe_details, PREG_PATTERN_ORDER);
@@ -50,6 +55,14 @@ foreach ($recipe_cat_url as $key => $value) {
             $recipe_metadata = $recipe_details[0];
             $recipe_details = $recipe_details[1];
 
+            if (preg_match('%<h1[^>]*>(.*?)</h1>%sim', $recipe_metadata, $regs)) {
+                $recipe_title = $regs[1];
+            } else {
+                $recipe_title = "";
+            }
+            $node->recipe_title = $recipe_title;
+            $node->single_recipe_url = $value;
+            
             $recipe_details_filtered = preg_replace('%<tr class="ingredient"[^>]*>(.*?)</tr>%sim', '', $recipe_details);
             preg_match_all('%<td align="left"  style="width:600px[^>]*>(.*?)<br />%sim', $recipe_details_filtered, $result, PREG_PATTERN_ORDER);
             $recipe_ingredients = $result[1];
@@ -70,12 +83,6 @@ foreach ($recipe_cat_url as $key => $value) {
             //echo '<p>'.trim($recipe_instructions).'</p>';
             $node->recipe_instructions = trim($recipe_instructions);
 
-            if (preg_match('%<h1[^>]*>(.*?)</h1>%sim', $recipe_metadata, $regs)) {
-                $recipe_title = $regs[1];
-            } else {
-                $recipe_title = "";
-            }
-
             if (preg_match('%<table cellpadding="2"[^>]*>(.*?)</table>%sim', $recipe_metadata, $regs)) {
                 $recipe_metadata_filtered = $regs[0];
             } else {
@@ -91,13 +98,16 @@ foreach ($recipe_cat_url as $key => $value) {
                 $recipe_summary = "No recipe_summary found for recipe.";
             }
             // echo '</br>Recipe Description:: '. $recipe_summary.'</br>';
+            $count++;
+            //p($node);
+            $node_results[] = (object) $node;
         }
-        break;
+        //break;
     }
     break;
 }
 
-p($node);
+p($node_results);
 
 function get_prep_cook_time($recipe_metadata_filtered) {
   preg_match_all('%<span[^>]*>(.*?)</span>%sim', $recipe_metadata_filtered, $metadata, PREG_PATTERN_ORDER);

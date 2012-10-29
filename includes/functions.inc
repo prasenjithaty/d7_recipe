@@ -8,7 +8,7 @@ $db = new Database();
 
 function get_db_curl_content($url = '1') {
   global $db;
-  $sql = "SELECT * FROM site_info WHERE url = '" . $url . "' ";
+  echo $sql = "SELECT * FROM site_info WHERE url = '" . $url . "'";
   $db->query($sql);
   if ($db->numRows() > 0) {
     while($db->nextRecord()){

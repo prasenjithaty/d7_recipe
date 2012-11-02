@@ -2,7 +2,7 @@
 class Database
     {
     var $Host     = "localhost";        // Hostname of our MySQL server.
-    var $Database = "recipeone";         // Logical database name on that server.
+    var $Database = "site_info";         // Logical database name on that server.
     var $User     = "root";             // User and Password for login.
     var $Password = "root";
  

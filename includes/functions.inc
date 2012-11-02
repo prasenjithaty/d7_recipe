@@ -8,7 +8,7 @@ $db = new Database();
 
 function get_db_curl_content($url = '1') {
   global $db;
-  echo $sql = "SELECT * FROM site_info WHERE url = '" . $url . "'";
+  $sql = "SELECT * FROM site_info WHERE url = '" . $url . "'";
   $db->query($sql);
   if ($db->numRows() > 0) {
     while($db->nextRecord()){
@@ -21,6 +21,29 @@ function get_db_curl_content($url = '1') {
     $data = array();
     $data['url'] = $url;
     $data['page_html'] = $content;
+    $parsed_url = parse_url($url);
+    $data['site_name'] = $parsed_url['host'];
+    $sql = "SELECT MAX(site_id) AS site_id FROM site_info WHERE 1";
+    $db->query($sql);
+    if ($db->numRows() > 0) {
+      while($db->nextRecord()){
+        $site_id = $db->Record['site_id'] + 1;
+      }
+    }
+    $sql = "SELECT * FROM site_info WHERE site_name = '" . $parsed_url['host'] . "'";
+    $db->query($sql);
+    if ($db->numRows() == 0) {
+      $data['site_id'] = $site_id;
+    } else {
+      $sql = "SELECT site_id FROM site_info WHERE site_name = '" . $parsed_url['host'] . "'";
+      $db->query($sql);
+      if ($db->numRows() > 0) {
+        while($db->nextRecord()){
+          $site_id = $db->Record['site_id'];
+          $data['site_id'] = $site_id;
+        }
+      }
+    }
     insert_content($data);
   }
 
@@ -57,7 +80,7 @@ function find_recipe_url_content($url) {
 function insert_content($data = array()) {
 	global $db;
   $data = add_slash($data);
-  $sql = "INSERT INTO site_info (url, page_html, status) values ('".$data['url']."','".$data['page_html']."','1' )";
+  $sql = "INSERT INTO site_info (url, site_id, site_name, page_html, status) values ('".$data['url']."', '".$data['site_id']."', '".$data['site_name']."','".$data['page_html']."','1' )";
   $db->query($sql);
 }
 
